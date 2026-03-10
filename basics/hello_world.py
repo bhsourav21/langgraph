@@ -2,6 +2,8 @@ from typing import TypedDict
 import os
 import sys
 
+from langgraph.pregel.main import Output
+
 # Ensure sibling 'util' package is importable without changing directories
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 if PROJECT_ROOT not in sys.path:
@@ -12,6 +14,7 @@ from util.langgraph_util import display
 
 class HelloWorldState(TypedDict):
     message: str
+    id: int
 
 def hello(state: HelloWorldState):
     print(f"Hello Node: {state['message']}")
