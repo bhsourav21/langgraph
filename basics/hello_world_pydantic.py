@@ -1,6 +1,7 @@
-from typing import TypedDict
+from pydantic import BaseModel, Field
 import os
 import sys
+from typing import Optional
 
 # Ensure sibling 'util' package is importable without changing directories
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
@@ -10,17 +11,17 @@ if PROJECT_ROOT not in sys.path:
 from langgraph.graph import END, START, StateGraph
 from util.langgraph_util import display
 
-class HelloWorldState(TypedDict):
-    message: str
-    id: int
+class HelloWorldState(BaseModel):
+    message: str = Field(min_length=3, max_length=100)
+    id: Optional[int] = None
 
 def hello(state: HelloWorldState):
-    print(f"Hello Node: {state['message']}")
-    return {"message": "Hello "+ state['message']}
+    print(f"Hello Node: {state.message}")
+    return {"message": "Hello "+ state.message}
 
 def bye(state: HelloWorldState):
-    print(f"Bye Node: {state['message']}")
-    return {"message": "Bye "+ state['message']}
+    print(f"Bye Node: {state.message}")
+    return {"message": "Bye "+ state.message}
 
 graph = StateGraph(HelloWorldState)
 graph.add_node("hello", hello)
@@ -36,5 +37,6 @@ graph.add_edge("bye", END)
 
 runnable = graph.compile()
 display(runnable)
+# output = runnable.invoke({"message": "Sourav", "id": 123})
 output = runnable.invoke({"message": "Sourav"})
 print(output)
