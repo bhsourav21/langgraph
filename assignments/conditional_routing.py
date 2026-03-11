@@ -8,7 +8,8 @@ class JobApplication(TypedDict):
 
 # TODO: Implement the function to categorize candidates based on experience
 def categorize_candidate(application: JobApplication):
-    pass  # Replace this with actual implementation
+    print(f"Received request:{application}")
+    return "schedule_interview" if application["years_experience"] >= 5 else "assign_skills_test"
 
 # Function for interview scheduling
 def schedule_interview(application: JobApplication):
@@ -24,8 +25,14 @@ def assign_skills_test(application: JobApplication):
 graph = StateGraph(JobApplication)
 
 # TODO: Add nodes to the graph
+graph.add_node("schedule_interview", schedule_interview)
+graph.add_node("assign_skills_test", assign_skills_test)
 
 # TODO: Define edges (workflow steps)
+graph.add_conditional_edges(START, categorize_candidate)
+graph.add_edge("schedule_interview", END)
+graph.add_edge("assign_skills_test", END)
+
 
 # Compile the workflow
 runnable = graph.compile()
