@@ -6,23 +6,23 @@ from langchain_core.messages import AIMessage, HumanMessage
 
 
 # Define chatbot state with accumulated messages
-class ChatBotState(MessagesState):
-    discount: Annotated[int, add]
-
+# class ChatBotState(TypedDict):
+#     messages: Annotated[list[AnyMessage], add]
+#     discount: Annotated[int, add]
 
 # Responses based on intent level
-def connect_to_sales(state: ChatBotState):
-    return {"messages": [AIMessage(content="Great! Let me connect you with our sales team right away. 🚀")],
-            "discount": 10}
+def connect_to_sales(state: MessagesState):
+    return {"messages": [AIMessage(content="Great! Let me connect you with our sales team right away. 🚀")]}
+            # "discount": 10}
 
 
-def sales_response(state: ChatBotState):
-    return {"messages": [AIMessage(content="We have the best offer for you 🚀")],
-            "discount": 20}
+def sales_response(state: MessagesState):
+    return {"messages": [AIMessage(content="We have the best offer for you 🚀")]}
+            # "discount": 20}
 
 
 # Build chatbot conversation flow
-graph_builder = StateGraph(ChatBotState)
+graph_builder = StateGraph(MessagesState)
 
 # Add nodes
 
@@ -47,4 +47,4 @@ for message in messages["messages"]:
     print(f"🤖 **Bot:** {message.content}")
 
 
-print("Final Discount: ",messages['discount'],'%')
+# print("Final Discount: ",messages['discount'],'%')

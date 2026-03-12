@@ -10,7 +10,6 @@ class ChatBotState(TypedDict):
     messages: Annotated[list[AnyMessage], add]
     discount: Annotated[int, add]
 
-
 # Responses based on intent level
 def connect_to_sales(state: ChatBotState):
     return {"messages": [AIMessage(content="Great! Let me connect you with our sales team right away. 🚀")],
