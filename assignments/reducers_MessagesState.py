@@ -1,18 +1,17 @@
 from typing import Annotated, TypedDict
 from langchain_core.messages import AnyMessage
 from operator import add
-from langgraph.graph import END, START, StateGraph
+from langgraph.graph import END, START, StateGraph, MessagesState
 from langchain_core.messages import AIMessage, HumanMessage
 
 
 # Define chatbot state with accumulated orders
-class OrderState(TypedDict):
-    messages: Annotated[list[AnyMessage], add]
-    order_id: Annotated[int,add]
+class OrderState(MessagesState):
+    order_id: Annotated[int, add]
 
 
 # Step 1: Take the food order
-def take_order(state: OrderState):
+def take_order(state: MessagesState):
     return {"messages": [AIMessage(content="Processing your order?")]}
 
 
