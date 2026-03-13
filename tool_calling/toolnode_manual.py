@@ -1,5 +1,9 @@
+from typing import TypedDict, List
+
 from langchain_core.tools import tool
 from langgraph.prebuilt import ToolNode
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import AnyMessage
 from langchain_core.messages import AIMessage
 
 
@@ -19,12 +23,20 @@ tool_node = ToolNode(tools)
 
 
 # TODO: Create an AIMessage for the tool call
-
+message_with_tool_call = AIMessage(content="",
+                                    tool_calls=[{'name': 'get_restaurant_recommendations', 
+                                                 'args': {'location': 'Munich'}, 
+                                                 'id': 'abc123', 
+                                                 'type': 'tool_call'}])
 
 
 
 # TODO: Invoke the ToolNode with the state and get the result
-
+result = tool_node.invoke(
+    {"messages": [message_with_tool_call]},
+    config={"tools": tools},
+)
 
 
 # TODO: Output the result
+print(result)
