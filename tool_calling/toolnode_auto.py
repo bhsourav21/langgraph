@@ -45,45 +45,38 @@ tool_node = ToolNode(tools)
 
 # TODO: Define functions for the workflow
 def call_model(state: MessagesState):
-    messages = state["messages"]
-    response = model.invoke(messages)
-    # `MessagesState` expects a list of messages; append the model response.
-    return {"messages": [response]}
+    message = state["messages"]
+    response = model.invoke(message)
+    return {"messages": response}
 
 
 # TODO: Define Conditional Routing
 def should_continue(state: MessagesState):
     messages = state["messages"]
     last_message = messages[-1]
-
+    
     if last_message.tool_calls:
         return "tools"
     return END
 
 
 # TODO: Define the workflow
-
 workflow = StateGraph(MessagesState)
 workflow.add_node("agent", call_model)
 workflow.add_node("tools", tool_node)
 
 workflow.add_edge(START, "agent")
-workflow.add_conditional_edges(
-    "agent",
-    should_continue,
-    path_map={"tools": "tools", END: END},
-)
+workflow.add_conditional_edges("agent", should_continue, {"tools": "tools", END:END})
 workflow.add_edge("tools", "agent")
-
 
 graph= workflow.compile()
 
 display(graph)
 # First invoke - Get one restaurant recommendation
 response = graph.invoke(
-    {"messages": [HumanMessage(content="Can you recommend just one top restaurant in Munich? "
+    {"messages": [HumanMessage(content="Can you recommend just one top restaurant in New York? "
                                        "The response should contain just the restaurant name")]})
 
 # TODO: Extract the recommended restaurant
 recommended_restaurant = response["messages"][-1].content
-print(f"recommended_restaurant:{recommended_restaurant}")
+print(recommended_restaurant)
