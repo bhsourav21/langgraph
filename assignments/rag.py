@@ -1,6 +1,7 @@
+import os
 import asyncio
 from typing import List, TypedDict
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
@@ -9,6 +10,11 @@ from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
+from dotenv import load_dotenv
+
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 
 # Medical Knowledge Sources (Example URLs)
 medical_info_urls = [
@@ -58,15 +64,28 @@ class MedicalDiagnosisGraphState(TypedDict):
 
 # TODO: Implement the retrieve_medical_data function
 def retrieve_medical_data(state):
-    pass
+    print("---RETRIEVE MEDICAL DATA---")
+    question = state["question"]
+    retrieved_medical_data = retriever.invoke(question)
+    return {"question": question, "retrieved_medical_data": retrieved_medical_data}
 
 # TODO: Implement the analyze_medical_diagnosis function
 def analyze_medical_diagnosis(state):
-    pass
+    print("---GENERATE MEDICAL DIAGNOSTIC SUMMARY---")
+    question = state["question"]
+    retrieved_medical_data = retriever.invoke(question)
+    diagnosis = diagnosis_chain.invoke({"question": question, "context": retrieved_medical_data})
+    return {"question": question, "retrieved_medical_data": retrieved_medical_data, "diagnosis": diagnosis}
 
 # TODO: Implement the create_medical_diagnosis_workflow function
 def create_medical_diagnosis_workflow():
-    pass
+    workflow = StateGraph(MedicalDiagnosisGraphState)
+    workflow.add_node("retrieve_medical_data", retrieve_medical_data)
+    workflow.add_node("analyze_medical_diagnosis", analyze_medical_diagnosis)
+    workflow.add_edge(START, "retrieve_medical_data")
+    workflow.add_edge("retrieve_medical_data", "analyze_medical_diagnosis")
+    workflow.add_edge("analyze_medical_diagnosis", END)
+    return workflow.compile()
 
 # Execute the Workflow
 medical_diagnosis_graph = create_medical_diagnosis_workflow()
