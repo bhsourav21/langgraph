@@ -1,5 +1,6 @@
+import os
 from typing import List, TypedDict
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
@@ -7,6 +8,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langgraph.graph import StateGraph, START, END
+from dotenv import load_dotenv
+
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Current Affairs News Sources
 news_urls = [
@@ -62,14 +67,19 @@ class CurrentAffairsGraphState(TypedDict):
 # TODO: Use the retriever and retrieve the matching news
 def retrieve_current_affairs(state):
     print("---RETRIEVE CURRENT AFFAIRS---")
-    return None
+    question = state["question"]
+    retrieved_news = retriever.invoke(question)
+    return {"question": question, "retrieved_news": retrieved_news}
 
 
 # TODO: Summarize the news
 # News Summary Generation Node
 def generate_current_affairs_summary(state):
     print("---GENERATE CURRENT AFFAIRS SUMMARY---")
-    return None
+    question = state["question"]
+    retrieved_news = retriever.invoke(question)
+    generation = current_affairs_chain.invoke({"question": question, "context": retrieved_news})
+    return {"question": question, "retrieved_news": retrieved_news, "generation": generation}
 
 # Current Affairs News Workflow Definition
 def create_current_affairs_workflow():
@@ -91,3 +101,4 @@ response = current_affairs_graph.invoke(inputs)
 
 print("\n--- CURRENT AFFAIRS SUMMARY ---")
 # TODO: Print Response
+print(response["generation"])
