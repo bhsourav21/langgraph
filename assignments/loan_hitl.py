@@ -1,7 +1,12 @@
+import os
 from typing import TypedDict
 from langgraph.graph import END, StateGraph
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import interrupt, Command
+from dotenv import load_dotenv
+
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 
 # Define the input state (Loan Application)
@@ -29,7 +34,15 @@ def approve_loan(state: LoanApplication):
 
 # TODO: Function to send loan applications for manual review using HITL
 def manual_review(state: LoanApplication):
-    pass
+    print(f"Loan amount: {state['loan_amount']}")
+    print(f"Credit score: {state['credit_score']}")
+    value = interrupt({
+        "question": "Are you okay approve the loan? Type yes or no."
+    })
+    if value == "yes":
+        return Command(goto="approve")
+    else:
+        return Command(goto="reject")
 
 
 # Function to reject loans
@@ -53,6 +66,7 @@ loan_workflow = graph.compile(checkpointer=MemorySaver())
 
 # Simulate loan applications with HITL
 inputs = {"applicant_name": "Bob", "credit_score": 400, "loan_amount": 30000}
+# inputs = {"applicant_name": "Bob", "credit_score": 701, "loan_amount": 30000}
 thread = {"configurable": {"thread_id": 1}}
 
 
@@ -62,8 +76,11 @@ result = loan_workflow.invoke(inputs, config=thread)
 # TODO: Handle the Interrupt and Provide Human Feedback
 tasks = loan_workflow.get_state(config=thread).tasks
 if len(tasks) > 0:
-    pass
+    task = tasks[0]
+    question = task.interrupts[0].value.get("question")
+    user_input = input(question)
 
-# Display results
-print("\n--- Final Decision ---")
-print(f"{result['decision']} (Amount: {inputs['loan_amount']})")
+    result = loan_workflow.invoke(Command(resume=user_input),config=thread)
+    # Display results
+    print("\n--- Final Decision ---")
+    print(f"{result['decision']} (Amount: {inputs['loan_amount']})")
