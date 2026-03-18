@@ -1,3 +1,4 @@
+import os
 from typing import List, TypedDict
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
@@ -6,6 +7,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langgraph.types import interrupt
 from langgraph.types import Command
+from dotenv import load_dotenv
+
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 
 class CodingAssistantState(TypedDict):
@@ -31,7 +36,11 @@ def generate_code(state):
 
 # TODO
 def human_review(state):
-    pass
+    value = interrupt({})
+    if value == "yes":
+        return Command(goto="create_tests")
+    else:
+        return Command(goto=END)
 
 
 def create_tests(state):
@@ -54,6 +63,9 @@ inputs = {"task": "Create a function to reverse a string in Python."}
 thread = {"configurable": {"thread_id": 1}}
 result = coding_assistant.invoke(inputs, config=thread)
 # TODO: Handle Interrupt
-
+print("\n---------Generated Code------------")
+print(result["code"])
+user_input = input("Are you okay with the code. Type yes or no.")
+result = coding_assistant.invoke(Command(resume=user_input),config=thread)
 print("\n--- Generated Tests ---")
 print(result.get("tests", "No code or tests generated"))
