@@ -36,7 +36,9 @@ def generate_code(state):
 
 # TODO
 def human_review(state):
-    value = interrupt({})
+    value = interrupt({
+        "question": "Are you okay with the code. Type yes or no."
+    })
     if value == "yes":
         return Command(goto="create_tests")
     else:
@@ -65,7 +67,11 @@ result = coding_assistant.invoke(inputs, config=thread)
 # TODO: Handle Interrupt
 print("\n---------Generated Code------------")
 print(result["code"])
-user_input = input("Are you okay with the code. Type yes or no.")
+tasks = coding_assistant.get_state(config=thread).tasks
+print(f"tasks:{tasks}")
+task = tasks[0]
+question = task.interrupts[0].value.get("question")
+user_input = input(question)
 result = coding_assistant.invoke(Command(resume=user_input),config=thread)
 print("\n--- Generated Tests ---")
 print(result.get("tests", "No code or tests generated"))
