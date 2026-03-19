@@ -8,6 +8,10 @@ import requests
 from langgraph.types import interrupt
 from langgraph.graph import StateGraph
 from langgraph.checkpoint.memory import MemorySaver
+from dotenv import load_dotenv
+
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 
 # ---------------------- Define State ----------------------
@@ -29,7 +33,7 @@ FHIR_BASE_URL = "https://hapi.fhir.org/baseR4"
 DB_CONFIG = {
     "dbname": "claims_db",
     "user": "postgres",
-    "password": "test",
+    "password": "Welcome234@",
     "host": "localhost"
 }
 
@@ -47,36 +51,94 @@ vector_store = Chroma.from_documents(chunks, embeddings)
 
 # ---------------------- Step 1: Fetch Patient Data ----------------------
 def fetch_patient_data(state: ClaimState):
-    pass
+    patient_id = state["patient_id"]
+    response = requests.get(f"{FHIR_BASE_URL}/Patient/{patient_id}")
+    if response.status_code == 200:
+        state["patient_data"] = response.json()
+    else:
+        state["patient_data"] = {"error": "Patient not found"}
+    
+    return state
+
+
 
 # ---------------------- Step 2: Fetch Insurance Data ----------------------
 def fetch_patient_insurance(state: ClaimState):
-    pass
+    patient_id = state["patient_id"]
+    response = requests.get(f"{FHIR_BASE_URL}/Coverage?patient={patient_id}")
+    if response.status_code == 200:
+        state["insurance_data"] = response.json()
+    else:
+        state["insurance_data"] = {"error": "Insurance details not found"}
+    
+    return state
+
 
 
 # ---------------------- Step 3: Retrieve Policy Documents ----------------------
 def retrieve_policy_docs(state: ClaimState):
-    pass
+    treatment_code = state["treatment_code"]
+    query = f"Retrieve insurance policy details for {treatment_code}"
+    docs = vector_store.search(query, k=4) #k=4 means return only top 4 documents within the search
+    state["policy_docs"] = [doc.page_content for doc in docs]   
+    
+    return state
 
 
 # ---------------------- Step 4: AI-Based Claim Validation ----------------------
 def validate_claim(state: ClaimState):
-    pass
+    claim_text = f"""
+    Clain Deatils: {state["claim_details"]}
+    Patient Data: {state["patient_data"]}
+    Insurance Coverage: {state['insurance_data']}
+    Retrieved Policies: {state['policy_docs']}
+    """
 
+    response = llm.invoke(
+        f"Validate the following claim. Should it be Approved, Rejected or need more info? {claim_text}"
+    )
+
+    state["ai_validation_feedback"] = response.content
+
+    return state
 
 # ---------------------- Step 5: Decision Node ----------------------
 def claim_decision(state: ClaimState):
-    pass
+    decision_text = state["ai_validation_feedback"]
 
+    if "more info" in decision_text.lower():
+        state["final_decision"] = "Request More Info"
+        state["_next"] = "human_review"
+    elif "accept" in decision_text.lower():
+        state["final_decision"] = "Approved"
+        state["_next"] = "store_claim"
+    elif "reject" in decision_text.lower():
+        state["final_decision"] = "Rejected"
+        state["_next"] = "store_claim"
+    
+    return state
 
 # ---------------------- Step 6: Store Decision in Database ----------------------
 def store_claim(state: ClaimState):
-    pass
+    conn = psycopg.connect(**DB_CONFIG)
+    cur = conn.cursor()
+    cur.execute("insert into claims (patient_id, status,decision_details) values (%s, %s, %s)",
+    (state['patient_id'], state['final_decision'], state["ai_validation_feedback"]))
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+    return state
 
 
 # ---------------------- Step 7: Human Review ----------------------
 def human_review(state: ClaimState):
-    pass
+    interrupt(
+        {
+        "feedback": state["ai_validation_feedback"]
+        }
+    )
+    return state
 
 # ---------------------- Build LangGraph Workflow ----------------------
 
