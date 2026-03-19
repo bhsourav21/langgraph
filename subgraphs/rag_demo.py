@@ -1,12 +1,17 @@
+import os
 from typing import List, TypedDict
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.vectorstores import Chroma
-from langchain_ollama import OllamaEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langgraph.graph import StateGraph, START, END
+from dotenv import load_dotenv
+
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Current Affairs News Sources
 news_urls = [
@@ -31,7 +36,7 @@ doc_splits = text_splitter.split_documents(docs_list)
 vectorstore = Chroma.from_documents(
     documents=doc_splits,
     collection_name="current-affairs-news",
-    embedding=OllamaEmbeddings(model="llama3.2"),
+    embedding=OpenAIEmbeddings(model="text-embedding-3-small"),
 )
 retriever = vectorstore.as_retriever()
 
@@ -43,7 +48,10 @@ class RAGGraphState(TypedDict):
 
 # TODO: Use the retriever and retrieve the matching news
 def retrieve_data(state: RAGGraphState):
-    pass
+    print("--------Retrieve data-------")
+    input = state["input"]
+    data = retriever.invoke(input)
+    return {"data": data}
 
 
 def create_rag_workflow():
@@ -69,7 +77,7 @@ prompt = ChatPromptTemplate.from_template(
     Summary:
     """
 )
-model = ChatOllama(model="llama3.2")
+model = ChatOpenAI(model="gpt-4o-mini")
 current_affairs_chain = (
         prompt | model | StrOutputParser()
 )
@@ -87,7 +95,7 @@ def generate_current_affairs_summary(state):
     print("---GENERATE CURRENT AFFAIRS SUMMARY---")
     question = state["question"]
     # TODO: Invoke the rag workflow
-    retrieved_news = None
+    retrieved_news = rag_workflow.invoke({"input": question})
     generation = current_affairs_chain.invoke({"question": question,"context": retrieved_news["data"]})
     return {"question": question, "retrieved_news": retrieved_news,"generation": generation}
 

@@ -54,17 +54,22 @@ def schedule_appointment(state: AppointmentState):
 appointment_graph = StateGraph(AppointmentState)
 # TODO: Add Sub Graph as a node
 appointment_graph.add_node("schedule_appointment", schedule_appointment)
+appointment_graph.add_node("insurance_verification", insurance_graph)
 
 # Define edges
 # TODO: Add the subgraph edge
+appointment_graph.add_edge(START, "insurance_verification")
 appointment_graph.add_edge("insurance_verification", "schedule_appointment")
 appointment_graph.add_edge("schedule_appointment", END)
 
 appointment_graph = appointment_graph.compile()
 
 # Invoke main workflow
+# inputs = {
+#     "patient_id": "PT-2025",
+# }
 inputs = {
-    "patient_id": "PT-2025",
+    "patient_id": None,
 }
 output = appointment_graph.invoke(inputs)
 
