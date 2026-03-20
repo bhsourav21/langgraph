@@ -1,3 +1,4 @@
+import os
 from typing import TypedDict, List
 from langchain_openai import ChatOpenAI,OpenAIEmbeddings
 from langchain_community.document_loaders import TextLoader
@@ -79,7 +80,8 @@ def fetch_patient_insurance(state: ClaimState):
 def retrieve_policy_docs(state: ClaimState):
     treatment_code = state["treatment_code"]
     query = f"Retrieve insurance policy details for {treatment_code}"
-    docs = vector_store.search(query, k=4) #k=4 means return only top 4 documents within the search
+    # docs = vector_store.search(query, k=4) #k=4 means return only top 4 documents within the search
+    docs = vector_store.search(query, "similarity", k=4) #k=4 means return only top 4 documents within the search
     state["policy_docs"] = [doc.page_content for doc in docs]   
     
     return state

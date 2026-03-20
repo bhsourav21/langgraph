@@ -39,6 +39,15 @@ async def handle_message(message):
 
         state = graph.invoke(claim_info, config=thread)
         # TODO: Human In The Loop
+        tasks = graph.get_state(config=thread).tasks
+
+        if tasks:
+            feedback = tasks[0].interrupts[0].value.get("feedback")
+            await cl.Message(f"Human Review Needed: \n\n {feedback}").send()
+            await cl.Message(f"Would you like to approve the claim? (yes/no)").send()
+            conversation_stage = "await_approval"
+            return  
+
 
         # No interrupt, display results directly
         await show_results(state)
@@ -47,7 +56,15 @@ async def handle_message(message):
 
     if conversation_stage == "await_approval":
         # TODO: Human In The Loop
-        pass
+        if message.content.strip().lower == 'yes':
+            state = graph.invoke(Command(resume="Approved"), config=thread)
+        else:
+            state = graph.invoke(Command(resume="Rejected"), config=thread)
+
+        await cl.Message("claim stored in database").send()
+        await show_results(state)
+        conversation_stage = "restart"
+
     
     if conversation_stage == "restart" and message.content.strip().lower() == "restart":
         claim_info = {}
